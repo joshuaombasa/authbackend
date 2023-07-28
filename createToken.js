@@ -9,7 +9,6 @@ function createToken(user) {
     }
 
     return jwt.sign(payload, secretKey, {expiresIn : '1h'}) // Token expires in 1 hour
-
 }
 
 module.exports = createToken
