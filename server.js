@@ -1,10 +1,14 @@
 const express = require('express')
-
+const jwt = require('jsonwebtoken')
 const cors = require('cors')
 
 const mysql = require('mysql')
 
 const app = express()
+
+const createToken = require('./createToken')
+
+const secretKey = 'ombasaJoshua'
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -25,19 +29,47 @@ app.post('/signup', (req, res) => {
 
     const { firstname, laststname, email, password } = req.body
 
-    const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
+    const checkSql = 'SELECT user_id FROM user WHERE email = ?'
 
     connection.query(
-        sql,
-        [firstname, laststname, email, password],
+        checkSql,
+        [email],
         (error, results) => {
             if (error) {
                 res.send(error)
             } else {
-                res.send('Account created successfully!')
+                if (results.length) {
+                    return res.status(409).json({ message: 'User with this email already exists' });
+                } else {
+
+                    const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
+
+                    connection.query(
+                        sql,
+                        [firstname, laststname, email, password],
+                        (error, result) => {
+                            if (error) {
+                                res.send(error)
+                            } else {
+                                // res.send({message : 'Account created successfully!'})
+                                const userId = result.insertId; // Get the ID of the newly inserted user
+
+                                // Generate a JWT token for the registered user using their ID
+                                const token = jwt.sign({ userId, firstname, email }, secretKey, { expiresIn: '1h' }); // Token expires in 1 hour
+                            
+                                // The registration was successful, and the user was added to the database
+                                res.json({ message: 'Registration successful.', token });
+                            }
+                        }
+                    )
+                }
             }
         }
     )
+
+    
+
+
 
 })
 
