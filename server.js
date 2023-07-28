@@ -20,9 +20,30 @@ const connection = mysql.createConnection({
 app.use(cors())
 
 app.use(express.json())
+app.use(express.urlencoded({extended: true}))
+
+function authenticateToken(req, res, next) {
+    const token = req.header('Authorization');
+
+    if (!token) {
+        return res.status(401).json({ message: 'Authentication token is missing.' });
+      } else if (token) {
+        jwt.verify(token, secretKey, (err, user) => {
+            if (err) {
+              return res.status(403).json({ message: 'Invalid token.' });
+            }
+
+            next();
+          });
+      }
+}
 
 app.get('/', (req, res) => {
     res.send({ message: 'Server running ok' })
+})
+
+app.get('/protected', authenticateToken, (req, res) => {
+    res.send({message : 'Welcome to private members club'})
 })
 
 app.post('/signup', (req, res) => {
@@ -67,12 +88,12 @@ app.post('/signup', (req, res) => {
         }
     )
 
-    
-
-
-
 })
 
-app.listen(3000, () => {
-    console.log('Server running on port 3000')
+app.post('/login', authenticateToken, (req, res) => {
+    res.send({message : 'Welcome to login page'})
+})
+
+app.listen(4000, () => {
+    console.log('Server running on port 4000')
 })
