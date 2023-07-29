@@ -1,6 +1,7 @@
 const express = require('express')
 const jwt = require('jsonwebtoken')
 const cors = require('cors')
+require('dotenv').config()
 
 const mysql = require('mysql')
 
@@ -8,7 +9,9 @@ const app = express()
 
 const createToken = require('./createToken')
 
-const secretKey = 'ombasaJoshua'
+const secretKey = process.env.JWT_SECRET
+
+
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -62,7 +65,6 @@ app.post('/signup', (req, res) => {
                 if (results.length) {
                     return res.status(409).json({ message: 'User with this email already exists' });
                 } else {
-
                     const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
 
                     connection.query(
