@@ -73,7 +73,7 @@ app.post('/signup', (req, res) => {
                                     email : email
                                 }
                               
-                                const token = createToken.createToken 
+                                const token = createToken.createToken(payload) 
                             
                                 res.json({ message: 'Registration successful.', token });
                             }
@@ -105,7 +105,7 @@ app.post('/login', (req, res) => {
                         email : email,
                         password : password
                     }
-                    const token = createToken.createToken
+                    const token = createToken.createToken(payload)
                     res.json({message : 'Login successful', token : token})
                 } else if (results.length === 0) {
                     res.status(401).json({message : 'User with this email does not exist'})
@@ -115,6 +115,10 @@ app.post('/login', (req, res) => {
     )
 })
 
-app.listen(4000, () => {
+app.get('/admin', authenticateToken.authenticateToken, (req, res) => {
+    res.json({user: 'Joshua Ombasa'})
+})
+
+app.listen(4000,  () => {
     console.log('Server running on port 4000')
 })
