@@ -3,11 +3,13 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors')
 require('dotenv').config()
 
+const authenticateToken = require ('./authenticateToken')
+
 const mysql = require('mysql')
 
 const app = express()
 
-const createToken = require('./createToken')
+
 
 const secretKey = process.env.JWT_SECRET
 
@@ -25,27 +27,27 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
-function authenticateToken(req, res, next) {
-    const token = req.header('Authorization');
+// function authenticateToken(req, res, next) {
+//     const token = req.header('Authorization');
 
-    if (!token) {
-        return res.status(401).json({ message: 'Authentication token is missing.' });
-      } else if (token) {
-        jwt.verify(token, secretKey, (err, user) => {
-            if (err) {
-              return res.status(403).json({ message: 'Invalid token.' });
-            }
+//     if (!token) {
+//         return res.status(401).json({ message: 'Authentication token is missing.' });
+//       } else if (token) {
+//         jwt.verify(token, secretKey, (err, user) => {
+//             if (err) {
+//               return res.status(403).json({ message: 'Invalid token.' });
+//             }
 
-            next();
-          });
-      }
-}
+//             next();
+//           });
+//       }
+// }
 
 app.get('/', (req, res) => {
     res.send({ message: 'Server running ok' })
 })
 
-app.get('/protected', authenticateToken, (req, res) => {
+app.get('/protected', authenticateToken.authenticateToken,  (req, res) => {
     res.send({message : 'Welcome to private members club'})
 })
 
@@ -92,7 +94,7 @@ app.post('/signup', (req, res) => {
 
 })
 
-app.post('/login', authenticateToken, (req, res) => {
+app.post('/login', authenticateToken.authenticateToken, (req, res) => {
     res.send({message : 'Welcome to login page'})
 })
 
