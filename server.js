@@ -3,7 +3,9 @@ const jwt = require('jsonwebtoken')
 const cors = require('cors')
 require('dotenv').config()
 
-const authenticateToken = require ('./authenticateToken')
+const bcrypt = require('bcrypt')
+
+const authenticateToken = require('./authenticateToken')
 
 const mysql = require('mysql')
 
@@ -11,11 +13,7 @@ const createToken = require('./createToken')
 
 const app = express()
 
-
-
 const secretKey = process.env.JWT_SECRET
-
-
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -27,16 +25,14 @@ const connection = mysql.createConnection({
 app.use(cors())
 
 app.use(express.json())
-app.use(express.urlencoded({extended: true}))
-
-
+app.use(express.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
     res.send({ message: 'Server running ok' })
 })
 
-app.get('/protected', authenticateToken.authenticateToken,  (req, res) => {
-    res.send({message : 'Welcome to private members club'})
+app.get('/protected', authenticateToken.authenticateToken, (req, res) => {
+    res.send({ message: 'Welcome to private members club' })
 })
 
 app.post('/signup', (req, res) => {
@@ -55,30 +51,33 @@ app.post('/signup', (req, res) => {
                 if (results.length > 0) {
                     return res.status(409).json({ message: 'User with this email already exists' });
                 } else {
-                    const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
+                    bcrypt.hash(password, 10, (error, hash) => {
 
-                    connection.query(
-                        sql,
-                        [firstname, laststname, email, password],
-                        (error, result) => {
-                            if (error) {
-                                res.send(error)
-                            } else {
-                               
-                                const userId = result.insertId; 
+                        const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
 
-                                const payload = {
-                                    userId : userId,
-                                    firstname : firstname,
-                                    email : email
+                        connection.query(
+                            sql,
+                            [firstname, laststname, email, hash],
+                            (error, result) => {
+                                if (error) {
+                                    res.send(error)
+                                } else {
+
+                                    const userId = result.insertId;
+
+                                    const payload = {
+                                        userId: userId,
+                                        firstname: firstname,
+                                        email: email
+                                    }
+
+                                    const token = createToken.createToken(payload)
+
+                                    res.json({ message: 'Registration successful.', token });
                                 }
-                              
-                                const token = createToken.createToken(payload) 
-                            
-                                res.json({ message: 'Registration successful.', token });
                             }
-                        }
-                    )
+                        )
+                    })
                 }
             }
         }
@@ -88,9 +87,9 @@ app.post('/signup', (req, res) => {
 
 app.post('/login', (req, res) => {
 
-    const {email, password} = req.body
+    const { email, password } = req.body
 
-    const sql = `SELECT user_id from user WHERE email = ? AND password = ?`
+    const sql = `SELECT * from user WHERE email = ?`
 
     connection.query(
         sql,
@@ -99,16 +98,24 @@ app.post('/login', (req, res) => {
             if (error) {
                 res.send(error)
             } else {
-           
+
                 if (results.length > 0) {
-                    const payload = {
-                        email : email,
-                        password : password
-                    }
-                    const token = createToken.createToken(payload)
-                    res.json({message : 'Login successful', token : token})
+                  
+                    bcrypt.compare(password, results[0].password, (error, isEqual) => {
+                        if (isEqual) {
+                            const payload = {
+                                email: email,
+                                password: password
+                            }
+                            const token = createToken.createToken(payload)
+                            res.json({ message: 'Login successful', token: token })
+                        } else {
+                            res.status(401).json({ message: 'Invalid credentials.' });
+                        }
+                    })
+
                 } else if (results.length === 0) {
-                    res.status(401).json({message : 'User with this email does not exist'})
+                    res.status(401).json({ message: 'User with this email does not exist' })
                 }
             }
         }
@@ -116,9 +123,9 @@ app.post('/login', (req, res) => {
 })
 
 app.get('/admin', authenticateToken.authenticateToken, (req, res) => {
-    res.json({user: 'Joshua Ombasa'})
+    res.json({ user: 'Joshua Ombasa' })
 })
 
-app.listen(4000,  () => {
+app.listen(4000, () => {
     console.log('Server running on port 4000')
 })
