@@ -7,6 +7,8 @@ const authenticateToken = require ('./authenticateToken')
 
 const mysql = require('mysql')
 
+const createToken = require('./createToken')
+
 const app = express()
 
 
@@ -27,21 +29,7 @@ app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 
-// function authenticateToken(req, res, next) {
-//     const token = req.header('Authorization');
 
-//     if (!token) {
-//         return res.status(401).json({ message: 'Authentication token is missing.' });
-//       } else if (token) {
-//         jwt.verify(token, secretKey, (err, user) => {
-//             if (err) {
-//               return res.status(403).json({ message: 'Invalid token.' });
-//             }
-
-//             next();
-//           });
-//       }
-// }
 
 app.get('/', (req, res) => {
     res.send({ message: 'Server running ok' })
@@ -64,7 +52,7 @@ app.post('/signup', (req, res) => {
             if (error) {
                 res.send(error)
             } else {
-                if (results.length) {
+                if (results.length > 0) {
                     return res.status(409).json({ message: 'User with this email already exists' });
                 } else {
                     const sql = `INSERT INTO user (first_name, last_name,  email, password ) VALUES( ?, ?, ?,?) `
@@ -76,13 +64,17 @@ app.post('/signup', (req, res) => {
                             if (error) {
                                 res.send(error)
                             } else {
-                                // res.send({message : 'Account created successfully!'})
-                                const userId = result.insertId; // Get the ID of the newly inserted user
+                               
+                                const userId = result.insertId; 
 
-                                // Generate a JWT token for the registered user using their ID
-                                const token = jwt.sign({ userId, firstname, email }, secretKey, { expiresIn: '1h' }); // Token expires in 1 hour
+                                const payload = {
+                                    userId : userId,
+                                    firstname : firstname,
+                                    email : email
+                                }
+                              
+                                const token = createToken.createToken 
                             
-                                // The registration was successful, and the user was added to the database
                                 res.json({ message: 'Registration successful.', token });
                             }
                         }
@@ -94,8 +86,33 @@ app.post('/signup', (req, res) => {
 
 })
 
-app.post('/login', authenticateToken.authenticateToken, (req, res) => {
-    res.send({message : 'Welcome to login page'})
+app.post('/login', (req, res) => {
+
+    const {email, password} = req.body
+
+    const sql = `SELECT user_id from user WHERE email = ? AND password = ?`
+
+    connection.query(
+        sql,
+        [email, password],
+        (error, results) => {
+            if (error) {
+                res.send(error)
+            } else {
+           
+                if (results.length > 0) {
+                    const payload = {
+                        email : email,
+                        password : password
+                    }
+                    const token = createToken.createToken
+                    res.json({message : 'Login successful', token : token})
+                } else if (results.length === 0) {
+                    res.status(401).json({message : 'User with this email does not exist'})
+                }
+            }
+        }
+    )
 })
 
 app.listen(4000, () => {
