@@ -122,19 +122,9 @@ app.post('/login', (req, res) => {
     )
 })
 
-app.get('/admin', authenticateToken.authenticateToken, async(req, res) => {
-    const sql = `SELECT * FROM user`
-
-    try {
-        const results = connection.query(sql)
-        if(results) {
-            res.send(results)
-        } else {
-            res.send({message : 'No user exists'})
-        }
-    } catch(error) {
-        res.send(error)
-    }
+app.get('/admin', authenticateToken.authenticateToken, (req, res) => {
+ 
+   res.json({message : 'Welcome to admin page'})
 })
 
 app.listen(4000, () => {
