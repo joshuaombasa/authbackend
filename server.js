@@ -17,8 +17,8 @@ const secretKey = process.env.JWT_SECRET
 
 const connection = mysql.createConnection({
     host: 'localhost',
-    user: 'root',
-    password: '',
+    user: process.env.DB_USERNAME,
+    password: process.env.DB_PASSWORD,
     database: 'auth'
 })
 
