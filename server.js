@@ -22,6 +22,10 @@ const connection = mysql.createConnection({
     database: 'auth'
 })
 
+const productRoutes = require('./routes/product')
+const adminRoutes = require('./routes/admin')
+const loginRoutes = require('./routes/login')
+
 app.use(cors())
 
 app.use(express.json())
@@ -85,47 +89,11 @@ app.post('/signup', (req, res) => {
 
 })
 
-app.post('/login', (req, res) => {
+app.use('/login',authenticateToken.authenticateToken, loginRoutes)
 
-    const { email, password } = req.body
+app.use('/admin', authenticateToken.authenticateToken, adminRoutes)
 
-    const sql = `SELECT * FROM user WHERE email = ?`
-
-    connection.query(
-        sql,
-        [email, password],
-        (error, results) => {
-            if (error) {
-                res.send(error)
-            } else {
-
-                if (results.length > 0) {
-                  
-                    bcrypt.compare(password, results[0].password, (error, isEqual) => {
-                        if (isEqual) {
-                            const payload = {
-                                email: email,
-                                password: password
-                            }
-                            const token = createToken.createToken(payload)
-                            res.json({ message: 'Login successful', token: token })
-                        } else {
-                            res.status(401).json({ message: 'Invalid credentials.' });
-                        }
-                    })
-
-                } else if (results.length === 0) {
-                    res.status(401).json({ message: 'User with this email does not exist' })
-                }
-            }
-        }
-    )
-})
-
-app.get('/admin', authenticateToken.authenticateToken, (req, res) => {
- 
-   res.json({message : 'Welcome to admin page'})
-})
+app.use('/products', productRoutes)
 
 app.listen(4000, () => {
     console.log('Server running on port 4000')
